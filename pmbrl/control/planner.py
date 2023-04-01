@@ -79,7 +79,7 @@ class Planner(nn.Module):
 
             returns = torch.zeros(self.n_candidates).float().to(self.device)
             if self.use_exploration:
-                expl_bonus = self.measure(delta_means, delta_vars) * self.expl_scale
+                expl_bonus = self.measure(delta_means, delta_vars)
                 returns += expl_bonus
                 self.trial_bonuses.append(expl_bonus)
 
