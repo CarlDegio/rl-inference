@@ -7,9 +7,13 @@ HALF_CHEETAH_FLIP_CONFIG = "half_cheetah_flip"
 REACHER_CONFIG = "reacher"
 ANT_MAZE = "ant_maze"
 DEBUG_CONFIG = "debug"
+TACTILE_PUSH_BALL = "tactile_push_ball"
+
 
 def print_configs():
-    print(f"[{MOUNTAIN_CAR_CONFIG}, {CUP_CATCH_CONFIG}, {HALF_CHEETAH_RUN_CONFIG}, {HALF_CHEETAH_FLIP_CONFIG}, {REACHER_CONFIG}, {ANT_MAZE}, {DEBUG_CONFIG} ")
+    print(
+        f"[{MOUNTAIN_CAR_CONFIG}, {CUP_CATCH_CONFIG}, {HALF_CHEETAH_RUN_CONFIG}, {HALF_CHEETAH_FLIP_CONFIG}, {REACHER_CONFIG}, {ANT_MAZE}, {DEBUG_CONFIG} ,{TACTILE_PUSH_BALL}")
+
 
 def get_config(args):
     if args.config_name == MOUNTAIN_CAR_CONFIG:
@@ -26,6 +30,8 @@ def get_config(args):
         config = AntMazeConfig()
     elif args.config_name == DEBUG_CONFIG:
         config = DebugConfig()
+    elif args.config_name == TACTILE_PUSH_BALL:
+        config = TactilePushBallConfig()
     else:
         raise ValueError("`{}` is not a valid config ID".format(args.config_name))
 
@@ -87,11 +93,12 @@ class Config(object):
 class DebugConfig(Config):
     def __init__(self):
         super().__init__()
-        self.env_name = "Pendulum-v0"
-        self.n_episodes = 5
+        self.env_name = "Pendulum-v1"
+        self.n_episodes = 10
         self.max_episode_len = 100
         self.hidden_size = 64
         self.plan_horizon = 5
+        self.n_seed_episodes = 1
 
 
 class MountainCarConfig(Config):
@@ -227,3 +234,30 @@ class ReacherConfig(Config):
         self.use_reward = True
         self.use_mean = True
         self.expl_scale = 0.1
+
+
+class TactilePushBallConfig(Config):
+    def __init__(self):
+        super().__init__()
+        self.logdir = "tactile_push_ball"
+        self.env_name = "TactilePushBall"
+        self.n_episodes = 100
+        self.n_seed_episodes = 10
+        self.max_episode_len = 80
+        self.action_repeat = 1
+
+        self.ensemble_size = 20
+        self.hidden_size = 400
+
+        self.n_train_epochs = 200
+        self.batch_size = 200
+
+        self.plan_horizon = 20
+        self.optimisation_iters = 5
+        self.n_candidates = 200
+        self.top_candidates = 20
+
+        self.use_exploration = True
+        self.use_reward = True
+        self.use_mean = True
+        self.expl_scale = 0.01
