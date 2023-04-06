@@ -95,7 +95,8 @@ def main(args):
 
         msg = "Training on [{}/{}] data points"
         logger.log(msg.format(buffer.total_steps, buffer.total_steps * args.action_repeat))
-        trainer.reset_models()
+        if episode % args.reset_interval == 0:
+            trainer.reset_models()
         ensemble_loss, reward_loss = trainer.train()
         logger.log_losses(ensemble_loss, reward_loss)
 
