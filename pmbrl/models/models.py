@@ -51,14 +51,14 @@ class EnsembleDenseLayer(nn.Module):
 
 class EnsembleModel(nn.Module):
     def __init__(
-        self,
-        in_size,
-        out_size,
-        hidden_size,
-        ensemble_size,
-        normalizer,
-        act_fn="swish",
-        device="cpu",
+            self,
+            in_size,
+            out_size,
+            hidden_size,
+            ensemble_size,
+            normalizer,
+            act_fn="swish",
+            device="cpu",
     ):
         super().__init__()
 
@@ -102,7 +102,7 @@ class EnsembleModel(nn.Module):
         return loss
 
     def sample(self, mean, var):
-        return Normal(mean, torch.sqrt(var)+1e-9).sample()
+        return Normal(mean, torch.sqrt(var) + 1e-9).sample()
 
     def reset_parameters(self):
         self.fc_1.reset_parameters()
@@ -121,7 +121,7 @@ class EnsembleModel(nn.Module):
         delta_mean, delta_logvar = torch.split(op, op.size(2) // 2, dim=2)
         delta_logvar = torch.sigmoid(delta_logvar)
         delta_logvar = (
-            self.min_logvar + (self.max_logvar - self.min_logvar) * delta_logvar
+                self.min_logvar + (self.max_logvar - self.min_logvar) * delta_logvar
         )
         delta_var = torch.exp(delta_logvar)
 
@@ -163,6 +163,7 @@ class RewardModel(nn.Module):
         return reward
 
     def loss(self, states, actions, rewards):
+        # 加入L2正则项抵抗过拟合，失败，会导致奖励拟合的效果变差（任意输入，都相同输出）
         r_hat = self(states, actions)
         return F.mse_loss(r_hat, rewards)
 
