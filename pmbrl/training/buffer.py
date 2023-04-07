@@ -7,14 +7,14 @@ import numpy as np
 
 class Buffer(object):
     def __init__(
-        self,
-        state_size,
-        action_size,
-        ensemble_size,
-        normalizer,
-        signal_noise=None,
-        buffer_size=10 ** 6,
-        device="cpu",
+            self,
+            state_size,
+            action_size,
+            ensemble_size,
+            normalizer,
+            signal_noise=None,
+            buffer_size=10 ** 6,
+            device="cpu",
     ):
         self.state_size = state_size
         self.action_size = action_size
@@ -42,6 +42,27 @@ class Buffer(object):
         self._total_steps += 1
 
         self.normalizer.update(state, action, state_delta)
+
+    def save(self, path="buffer.npz"):
+        length = min(self._total_steps, self.buffer_size)
+        save_dict = {
+            "length": length,
+            "states": self.states[:length],
+            "actions": self.actions[:length],
+            "rewards": self.rewards[:length],
+            "state_deltas": self.state_deltas[:length]
+        }
+        np.savez(path, **save_dict)
+        print(f"saving buffer to {path}, length with {length}")
+
+    def load(self, path="buffer.npz"):
+        load_dict = np.load(path)
+        print(f"loading buffer from {path}, length with {load_dict['length']}")
+        for i in range(load_dict["length"]):
+            self.add(load_dict["states"][i],
+                     load_dict["actions"][i],
+                     load_dict["rewards"][i],
+                     load_dict["states"][i] + load_dict["state_deltas"][i])
 
     def get_train_batches(self, batch_size):
         size = len(self)
