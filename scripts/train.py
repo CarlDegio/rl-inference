@@ -85,6 +85,7 @@ def main(args):
     )
     agent = Agent(env, planner, logger=logger)
 
+    #buffer.load()
     agent.get_seed_episodes(buffer, args.n_seed_episodes)
     msg = "\nCollected seeds: [{} episodes | {} frames]"
     logger.log(msg.format(args.n_seed_episodes, buffer.total_steps))
@@ -119,6 +120,9 @@ def main(args):
 
         logger.log_time(time.time() - start_time)
         logger.save()
+
+        # if episode%10==0:
+        #     buffer.save()
 
 
 if __name__ == "__main__":

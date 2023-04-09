@@ -50,7 +50,7 @@ def draw_episode_planer_information(planer_information_data):
 
 
 if __name__ == "__main__":
-    dir_name = "log_tactile_push_ball_crush/"
+    dir_name = "log_tactile_push_ball_0/"
     file_path = "../" + dir_name + "metrics.json"
     data = read_json(file_path)
 

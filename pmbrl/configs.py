@@ -76,6 +76,7 @@ class Config(object):
 
         self.expl_scale = 1.0
         self.reward_scale = 1.0
+        self.reset_interval = 1
 
     def set_logdir(self, logdir):
         self.logdir = logdir
@@ -241,10 +242,10 @@ class TactilePushBallConfig(Config):
         super().__init__()
         self.logdir = "tactile_push_ball"
         self.env_name = "TactilePushBall"
-        self.n_episodes = 100
-        self.n_seed_episodes = 10
+        self.n_episodes = 200
+        self.n_seed_episodes = 5
         self.max_episode_len = 80
-        self.action_repeat = 1
+        self.action_repeat = 2
 
         self.ensemble_size = 20
         self.hidden_size = 400

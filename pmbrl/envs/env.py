@@ -6,6 +6,7 @@ HALF_CHEETAH_FLIP = "HalfCheetahFlip"
 ANT_MAZE = "AntMaze"
 DM_REACHER = "DeepMindReacher"
 DM_CATCH = "DeepMindCatch"
+TACTILE_PUSH_BALL = "TactilePushBall"
 
 
 class GymEnv(object):
@@ -87,5 +88,12 @@ class GymEnv(object):
             from pmbrl.envs.dm_wrapper import DeepMindWrapper
 
             return DeepMindWrapper(domain="reacher", task="easy")
+
+        elif env_name == TACTILE_PUSH_BALL:
+            from Envs.normalize_wrapper import NormalizeWrapper
+            env = gym.make("tactile_push/PushBall-v0", seed=1, dense_reward=True)
+            wrapperd_env = NormalizeWrapper(env)
+            return wrapperd_env
+
         else:
             return gym.make(env_name)
