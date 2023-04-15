@@ -31,7 +31,7 @@ def draw_episode_planer_reward(planer_reward_data):
     plt.xlabel("Episode")
     plt.ylabel("Reward")
     plt.title("Predict Reward Curve")
-    plt.ylim(-20, 40)
+    plt.ylim(-40, 30)
     plt.legend()
     plt.show()
 
@@ -44,7 +44,7 @@ def draw_episode_planer_information(planer_information_data):
     plt.xlabel("Episode")
     plt.ylabel("Information Gain")
     plt.title("Predict Information Curve")
-    plt.ylim(0, 6)
+    # plt.ylim(0, 6)
     plt.legend()
     plt.show()
 
