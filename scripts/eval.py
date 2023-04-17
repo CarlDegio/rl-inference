@@ -50,6 +50,17 @@ def main(args):
         device=DEVICE,
     )
     reward_model = RewardModel(state_size + action_size, args.hidden_size, device=DEVICE)
+    trainer = Trainer(
+        ensemble,
+        reward_model,
+        buffer,
+        n_train_epochs=args.n_train_epochs,
+        batch_size=args.batch_size,
+        learning_rate=args.learning_rate,
+        epsilon=args.epsilon,
+        grad_clip_norm=args.grad_clip_norm,
+        logger=logger,
+    )
 
     planner = Planner(
         ensemble,
@@ -72,8 +83,14 @@ def main(args):
 
     buffer.load()
 
+    msg = "Training on [{}/{}] data points"
+    logger.log(msg.format(buffer.total_steps, buffer.total_steps * args.action_repeat))
+    trainer.reset_models()
+    ensemble_loss, reward_loss = trainer.train()
+    logger.log_losses(ensemble_loss, reward_loss)
+
     for episode in range(1, args.n_episodes):
-        logger.log("\n=== Episode {} ===".format(episode))
+        logger.log("\n=== Eval Episode {} ===".format(episode))
         start_time = time.time()
 
         recorder = None
@@ -91,7 +108,6 @@ def main(args):
 
         logger.log_time(time.time() - start_time)
         logger.save()
-
 
 
 if __name__ == "__main__":
