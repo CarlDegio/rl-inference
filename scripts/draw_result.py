@@ -22,6 +22,27 @@ def draw_episode_reward(reward_data):
     plt.show()
 
 
+def draw_success_rate(reward_data, success_reward):
+    success_buffer = []
+    success_rate = []
+    for i in reward_data:
+        if len(success_buffer) > 20:
+            success_buffer.pop(0)
+        success_buffer.append(i)
+        success = 0
+        for j in success_buffer:
+            if j > success_reward:
+                success += 1
+        success_rate.append(success / len(success_buffer))
+    plt.figure()
+    plt.plot(success_rate, label="10episode-success-rate")
+    plt.xlabel("Episode")
+    plt.ylabel("success rate")
+    plt.title("success rate")
+    plt.legend()
+    plt.show()
+
+
 def draw_episode_planer_reward(planer_reward_data):
     plt.figure()
     data_mean = np.array([float(i["mean"]) for i in planer_reward_data])
@@ -34,6 +55,7 @@ def draw_episode_planer_reward(planer_reward_data):
     plt.ylim(-40, 30)
     plt.legend()
     plt.show()
+
 
 def draw_episode_planer_information(planer_information_data):
     plt.figure()
@@ -55,5 +77,6 @@ if __name__ == "__main__":
     data = read_json(file_path)
 
     draw_episode_reward(data["rewards"])
+    draw_success_rate(data["rewards"],1)
     draw_episode_planer_reward(data["reward_stats"])
     draw_episode_planer_information(data["info_stats"])
