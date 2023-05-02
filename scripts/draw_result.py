@@ -21,7 +21,22 @@ def draw_episode_reward(reward_data):
     plt.legend()
     plt.show()
 
+def draw_episode_reward_mean(reward_data):
+    reward_buffer=[]
+    reward_mean=[]
+    for i in reward_data:
+        if len(reward_buffer)>20:
+            reward_buffer.pop(0)
+        reward_buffer.append(i)
+        reward_mean.append(np.mean(reward_buffer))
 
+    plt.figure()
+    plt.plot(reward_mean, label="20episodes-rewards-mean")
+    plt.xlabel("Episode")
+    plt.ylabel("Reward")
+    plt.title("Reward Mean Curve")
+    plt.legend()
+    plt.show()
 def draw_success_rate(reward_data, success_reward):
     success_buffer = []
     success_rate = []
@@ -35,7 +50,7 @@ def draw_success_rate(reward_data, success_reward):
                 success += 1
         success_rate.append(success / len(success_buffer))
     plt.figure()
-    plt.plot(success_rate, label="10episode-success-rate")
+    plt.plot(success_rate, label="20episodes-success-rate-mean")
     plt.xlabel("Episode")
     plt.ylabel("success rate")
     plt.title("success rate")
@@ -78,5 +93,6 @@ if __name__ == "__main__":
 
     draw_episode_reward(data["rewards"])
     draw_success_rate(data["rewards"],1)
+    draw_episode_reward_mean(data["rewards"])
     draw_episode_planer_reward(data["reward_stats"])
     draw_episode_planer_information(data["info_stats"])
