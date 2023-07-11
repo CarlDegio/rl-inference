@@ -91,7 +91,7 @@ class GymEnv(object):
 
         elif env_name == TACTILE_PUSH_BALL:
             from Envs.normalize_wrapper import NormalizeWrapper
-            env = gym.make("tactile_push/PushBall-v0", seed=1, dense_reward=True)
+            env = gym.make("tactile_push/PushBall-v1", seed=1, dense_reward=True, render_mode="human")#,tactile=False)
             wrapperd_env = NormalizeWrapper(env)
             return wrapperd_env
 

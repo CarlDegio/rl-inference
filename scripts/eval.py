@@ -81,7 +81,7 @@ def main(args):
     )
     agent = Agent(env, planner, logger=logger)
 
-    buffer.load()
+    buffer.load('log_tactile_push_ball_incline_sparse_0.4reset/buffer.npz')
 
     msg = "Training on [{}/{}] data points"
     logger.log(msg.format(buffer.total_steps, buffer.total_steps * args.action_repeat))
