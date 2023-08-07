@@ -36,3 +36,5 @@ The provided configs are [`mountain_car`, `cup_catch`, `half_cheetah_run`,  `hal
 - Beren Millidge [@bmillidge](https://github.com/BerenMillidge)
 
 The code for the ensemble model was adapted from the [max](https://github.com/nnaisense/max) repo
+
+需要将tactile_push加入解释器路径
