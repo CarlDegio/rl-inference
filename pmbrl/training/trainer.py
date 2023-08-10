@@ -7,6 +7,8 @@ import torch
 class Trainer(object):
     def __init__(
         self,
+        encoder,
+        decoder,
         ensemble,
         reward_model,
         buffer,
@@ -29,6 +31,9 @@ class Trainer(object):
 
         self.params = list(ensemble.parameters()) + list(reward_model.parameters())
         self.optim = torch.optim.Adam(self.params, lr=learning_rate, eps=epsilon)
+
+        self.enc_dec_params = list(encoder.parameters()) + list(decoder.parameters())
+        self.enc_dec_optim = torch.optim.Adam(self.enc_dec_params, lr=1e-4, eps=1e-4)
 
     def train(self):
         e_losses = []

@@ -29,21 +29,23 @@ class Buffer(object):
         self.state_deltas = np.zeros((buffer_size, state_size))
 
         self.pic_obs = np.zeros((buffer_size, 3, 64, 64))
+        self.next_pic_obs = np.zeros((buffer_size, 3, 64, 64))
 
         self.normalizer = normalizer
         self._total_steps = 0
 
     def add(self, state, action, reward, next_state):
         vec, img = state['vec'], state['img']
-        img=np.traspose(img, (2, 0, 1))
+        img = np.traspose(img, (2, 0, 1))
         idx = self._total_steps % self.buffer_size
-        vec_delta= next_state['vec'] - vec
+        vec_delta = next_state['vec'] - vec
 
         self.states[idx] = vec
         self.actions[idx] = action
         self.rewards[idx] = reward
         self.state_deltas[idx] = vec_delta
         self.pic_obs[idx] = img
+        self.next_pic_obs[idx] = next_state['img']
         self._total_steps += 1
 
         self.normalizer.update(state, action, vec_delta)
@@ -88,26 +90,32 @@ class Buffer(object):
             batch_indices = batch_indices.flatten()
 
             states = self.states[batch_indices]
+            pic_obs = self.pic_obs[batch_indices]
             actions = self.actions[batch_indices]
             rewards = self.rewards[batch_indices]
             state_deltas = self.state_deltas[batch_indices]
+            next_pic_obs = self.next_pic_obs[batch_indices]
 
             states = torch.from_numpy(states).float().to(self.device)
+            pic_obs = torch.from_numpy(pic_obs).float().to(self.device)
             actions = torch.from_numpy(actions).float().to(self.device)
             rewards = torch.from_numpy(rewards).float().to(self.device)
             state_deltas = torch.from_numpy(state_deltas).float().to(self.device)
+            next_pic_obs = torch.from_numpy(next_pic_obs).float().to(self.device)
 
             if self.signal_noise is not None:
                 states = states + self.signal_noise * torch.randn_like(states)
 
             states = states.reshape(self.ensemble_size, batch_size, self.state_size)
+            pic_obs = pic_obs.reshape(self.ensemble_size, batch_size, 3, 64, 64)
             actions = actions.reshape(self.ensemble_size, batch_size, self.action_size)
             rewards = rewards.reshape(self.ensemble_size, batch_size, 1)
             state_deltas = state_deltas.reshape(
                 self.ensemble_size, batch_size, self.state_size
             )
+            next_pic_obs = next_pic_obs.reshape(self.ensemble_size, batch_size, 3, 64, 64)
 
-            yield states, actions, rewards, state_deltas
+            yield states, pic_obs, actions, rewards, state_deltas, next_pic_obs
 
     def __len__(self):
         return min(self._total_steps, self.buffer_size)

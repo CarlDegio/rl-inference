@@ -63,7 +63,7 @@ class Planner(nn.Module):
 
         state = torch.from_numpy(state).float().to(self.device)
         embedded_state = self.encoder(state['vec'],state['img'])
-        state_size = embedded_state.size(0)
+        embedding_state_size = embedded_state.size(0)
 
         action_mean = torch.zeros(self.plan_horizon, 1, self.action_size).to(
             self.device
@@ -87,7 +87,7 @@ class Planner(nn.Module):
                 self.trial_bonuses.append(expl_bonus)
 
             if self.use_reward:
-                _states = states.view(-1, state_size)
+                _states = states.view(-1, embedding_state_size)
                 _actions = actions.unsqueeze(0).repeat(self.ensemble_size, 1, 1, 1)
                 _actions = _actions.view(-1, self.action_size)
                 rewards = self.reward_model(_states, _actions)

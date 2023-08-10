@@ -42,6 +42,7 @@ class Decoder(nn.Module):
         self.to(device)
 
     def forward(self, embedded_obs):
+        # TODO 独立的img emb可以切换成混合的
         vec = embedded_obs[:, :self.vec_dim]
         embedded_img = embedded_obs[:, self.vec_dim:]
         hidden = self.fc(embedded_img, dim=1)

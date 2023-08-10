@@ -57,6 +57,8 @@ def main(args):
     )
     reward_model = RewardModel(state_size + action_size, args.hidden_size, device=DEVICE)
     trainer = Trainer(
+        encoder,
+        decoder,
         ensemble,
         reward_model,
         buffer,
