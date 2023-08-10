@@ -33,10 +33,12 @@ class Trainer(object):
     def train(self):
         e_losses = []
         r_losses = []
+        recon_loss = []
         n_batches = []
         for epoch in range(1, self.n_train_epochs + 1):
             e_losses.append([])
             r_losses.append([])
+            recon_loss.append([])
             n_batches.append(0)
 
             for (states, actions, rewards, deltas) in self.buffer.get_train_batches(

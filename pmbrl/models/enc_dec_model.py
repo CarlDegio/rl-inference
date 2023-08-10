@@ -6,13 +6,14 @@ class Encoder(nn.Module):
     """
     Encoder to embed image observation (3, 64, 64) to vector (10,)
     """
-    def __init__(self):
+    def __init__(self,device):
         super(Encoder, self).__init__()
         self.cv1 = nn.Conv2d(3, 16, kernel_size=4, stride=2)
         self.cv2 = nn.Conv2d(16, 32, kernel_size=4, stride=2)
         self.cv3 = nn.Conv2d(32, 32, kernel_size=4, stride=2)
         self.cv4 = nn.Conv2d(32, 64, kernel_size=4, stride=2)  # 64*4
         self.fc1 = nn.Linear(64*4, 10)
+        self.to(device)
 
     def forward(self, vec, img):
         hidden = F.relu(self.cv1(img))
@@ -23,14 +24,14 @@ class Encoder(nn.Module):
         embedded_obs = torch.cat([vec, embedded_obs], dim=1)
         return embedded_obs
 
-class ObservationModel(nn.Module):
+class Decoder(nn.Module):
     """
     p(o_t | s_t)
     Observation model to reconstruct image observation (3, 64, 64)
     from state and rnn hidden state
     """
-    def __init__(self, vec_dim, embedded_img_dim):
-        super(ObservationModel, self).__init__()
+    def __init__(self, vec_dim, embedded_img_dim, device):
+        super(Decoder, self).__init__()
         self.vec_dim = vec_dim
         self.embedded_img_dim = embedded_img_dim
         self.fc = nn.Linear(embedded_img_dim, 256)
@@ -38,6 +39,7 @@ class ObservationModel(nn.Module):
         self.dc2 = nn.ConvTranspose2d(64, 32, kernel_size=5, stride=2)
         self.dc3 = nn.ConvTranspose2d(32, 16, kernel_size=6, stride=2)
         self.dc4 = nn.ConvTranspose2d(16, 3, kernel_size=6, stride=2)
+        self.to(device)
 
     def forward(self, embedded_obs):
         vec = embedded_obs[:, :self.vec_dim]

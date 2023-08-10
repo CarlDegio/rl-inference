@@ -10,6 +10,7 @@ from pmbrl.control.measures import InformationGain, Disagreement, Variance, Rand
 class Planner(nn.Module):
     def __init__(
         self,
+        encoder,
         ensemble,
         reward_model,
         action_size,
@@ -27,6 +28,7 @@ class Planner(nn.Module):
         device="cpu",
     ):
         super().__init__()
+        self.encoder = encoder
         self.ensemble = ensemble
         self.reward_model = reward_model
         self.action_size = action_size
@@ -60,7 +62,8 @@ class Planner(nn.Module):
     def forward(self, state):
 
         state = torch.from_numpy(state).float().to(self.device)
-        state_size = state.size(0)
+        embedded_state = self.encoder(state['vec'],state['img'])
+        state_size = embedded_state.size(0)
 
         action_mean = torch.zeros(self.plan_horizon, 1, self.action_size).to(
             self.device

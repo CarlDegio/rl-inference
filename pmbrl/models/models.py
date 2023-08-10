@@ -155,8 +155,8 @@ class RewardModel(nn.Module):
         self.reset_parameters()
         self.to(device)
 
-    def forward(self, states, actions):
-        inp = torch.cat((states, actions), dim=-1)
+    def forward(self, embedding_states, actions):
+        inp = torch.cat((embedding_states, actions), dim=-1)
         reward = self.act_fn(self.fc_1(inp))
         reward = self.act_fn(self.fc_2(reward))
         reward = self.fc_3(reward).squeeze(dim=1)

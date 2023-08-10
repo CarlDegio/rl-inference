@@ -14,7 +14,7 @@ sys.path.append(str(pathlib.Path(__file__).parent.parent))
 
 from pmbrl.envs import GymEnv
 from pmbrl.training import Normalizer, Buffer, Trainer
-from pmbrl.models import EnsembleModel, RewardModel
+from pmbrl.models import EnsembleModel, RewardModel, Encoder, Decoder
 from pmbrl.control import Planner, Agent
 from pmbrl.utils import Logger
 from pmbrl import get_config
@@ -44,9 +44,11 @@ def main(args):
 
     normalizer = Normalizer()
     buffer = Buffer(state_size, action_size, args.ensemble_size, normalizer, device=DEVICE)
+    encoder = Encoder(device=DEVICE)
+    decoder = Decoder(state_size, 10, device=DEVICE)
 
     ensemble = EnsembleModel(
-        state_size + action_size,
+        (state_size + 10) + action_size,
         state_size,
         args.hidden_size,
         args.ensemble_size,
@@ -67,6 +69,7 @@ def main(args):
     )
 
     planner = Planner(
+        encoder,
         ensemble,
         reward_model,
         action_size,
@@ -127,8 +130,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--logdir", type=str, default="log")
-    parser.add_argument("--config_name", type=str, default="mountain_car")
+    parser.add_argument("--logdir", type=str, default="tactile_push_ball")
+    parser.add_argument("--config_name", type=str, default="tactile_push_ball")
     parser.add_argument("--strategy", type=str, default="information")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()

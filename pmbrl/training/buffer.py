@@ -13,7 +13,7 @@ class Buffer(object):
             ensemble_size,
             normalizer,
             signal_noise=None,
-            buffer_size=10 ** 6,
+            buffer_size=10 ** 5,
             device="cpu",
     ):
         self.state_size = state_size
@@ -28,20 +28,25 @@ class Buffer(object):
         self.rewards = np.zeros((buffer_size, 1))
         self.state_deltas = np.zeros((buffer_size, state_size))
 
+        self.pic_obs = np.zeros((buffer_size, 3, 64, 64))
+
         self.normalizer = normalizer
         self._total_steps = 0
 
     def add(self, state, action, reward, next_state):
+        vec, img = state['vec'], state['img']
+        img=np.traspose(img, (2, 0, 1))
         idx = self._total_steps % self.buffer_size
-        state_delta = next_state - state
+        vec_delta= next_state['vec'] - vec
 
-        self.states[idx] = state
+        self.states[idx] = vec
         self.actions[idx] = action
         self.rewards[idx] = reward
-        self.state_deltas[idx] = state_delta
+        self.state_deltas[idx] = vec_delta
+        self.pic_obs[idx] = img
         self._total_steps += 1
 
-        self.normalizer.update(state, action, state_delta)
+        self.normalizer.update(state, action, vec_delta)
 
     def save(self, path="buffer.npz"):
         length = min(self._total_steps, self.buffer_size)
