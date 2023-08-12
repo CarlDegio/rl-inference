@@ -1,6 +1,6 @@
 # pylint: disable=not-callable
 # pylint: disable=no-member
-
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -9,23 +9,23 @@ from pmbrl.control.measures import InformationGain, Disagreement, Variance, Rand
 
 class Planner(nn.Module):
     def __init__(
-        self,
-        encoder,
-        ensemble,
-        reward_model,
-        action_size,
-        ensemble_size,
-        plan_horizon,
-        optimisation_iters,
-        n_candidates,
-        top_candidates,
-        use_reward=True,
-        use_exploration=True,
-        use_mean=False,
-        expl_scale=1.0,
-        reward_scale=1.0,
-        strategy="information",
-        device="cpu",
+            self,
+            encoder,
+            ensemble,
+            reward_model,
+            action_size,
+            ensemble_size,
+            plan_horizon,
+            optimisation_iters,
+            n_candidates,
+            top_candidates,
+            use_reward=True,
+            use_exploration=True,
+            use_mean=False,
+            expl_scale=1.0,
+            reward_scale=1.0,
+            strategy="information",
+            device="cpu",
     ):
         super().__init__()
         self.encoder = encoder
@@ -61,8 +61,9 @@ class Planner(nn.Module):
 
     def forward(self, state):
 
-        state = torch.from_numpy(state).float().to(self.device)
-        embedded_state = self.encoder(state['vec'],state['img'])
+        vec_obs = torch.as_tensor(state['vec'], dtype=torch.float32).to(self.device).unsqueeze(0)
+        img_obs = torch.as_tensor(np.transpose(state['img'], (2, 0, 1)), dtype=torch.float32).to(self.device).unsqueeze(0)
+        embedded_state = self.encoder(vec_obs, img_obs).squeeze()
         embedding_state_size = embedded_state.size(0)
 
         action_mean = torch.zeros(self.plan_horizon, 1, self.action_size).to(
@@ -78,7 +79,7 @@ class Planner(nn.Module):
                 self.action_size,
                 device=self.device,
             )
-            states, delta_vars, delta_means = self.perform_rollout(state, actions)
+            states, delta_vars, delta_means = self.perform_rollout(embedded_state, actions)
 
             returns = torch.zeros(self.n_candidates).float().to(self.device)
             if self.use_exploration:
@@ -164,4 +165,3 @@ class Planner(nn.Module):
             "mean": tensor.mean().item(),
             "std": tensor.std().item(),
         }
-
