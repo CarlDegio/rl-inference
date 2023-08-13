@@ -83,26 +83,31 @@ class EnsembleModel(nn.Module):
         self.device = device
         self.to(device)
 
-    def forward(self, states, actions):
-        norm_states, norm_actions = self._pre_process_model_inputs(states, actions)
+    def forward(self, embedded, actions):
+        # TODO normlizer
+        # norm_states, norm_actions = self._pre_process_model_inputs(states, actions)
         norm_delta_mean, norm_delta_var = self._propagate_network(
-            norm_states, norm_actions
+            embedded, actions
         )
-        delta_mean, delta_var = self._post_process_model_outputs(
-            norm_delta_mean, norm_delta_var
-        )
-        return delta_mean, delta_var
+        # delta_mean, delta_var = self._post_process_model_outputs(
+        #     norm_delta_mean, norm_delta_var
+        # )
+        return norm_delta_mean, norm_delta_mean
 
-    def loss(self, states, actions, state_deltas):
-        states, actions = self._pre_process_model_inputs(states, actions)
-        delta_targets = self._pre_process_model_targets(state_deltas)
-        delta_mu, delta_var = self._propagate_network(states, actions)
-        loss = (delta_mu - delta_targets) ** 2 / delta_var + torch.log(delta_var)
+    def loss(self, embedded, actions, next_embedded):
+        vec_delta = next_embedded - embedded
+        # vec_delta = vec_delta*torch.tensor([])
+        target = vec_delta
+
+        # states, actions = self._pre_process_model_inputs(states, actions)
+        # delta_targets = self._pre_process_model_targets(next_embeded)
+        delta_mu, delta_var = self._propagate_network(target, actions)
+        loss = (delta_mu - target) ** 2 / delta_var + torch.log(delta_var)
         loss = loss.mean(-1).mean(-1).sum()
         return loss
 
     def sample(self, mean, var):
-        return Normal(mean, torch.sqrt(var)).sample()
+        return Normal(mean, torch.sqrt(var)+1e-5).sample()
 
     def reset_parameters(self):
         self.fc_1.reset_parameters()
@@ -152,7 +157,10 @@ class RewardModel(nn.Module):
         self.hidden_size = hidden_size
         self.device = device
         self.act_fn = getattr(F, act_fn)
-        self.reset_parameters()
+
+        self.fc_1 = nn.Linear(self.in_size, self.hidden_size)
+        self.fc_2 = nn.Linear(self.hidden_size, self.hidden_size)
+        self.fc_3 = nn.Linear(self.hidden_size, 1)
         self.to(device)
 
     def forward(self, embedding_states, actions):
@@ -168,7 +176,6 @@ class RewardModel(nn.Module):
         return F.mse_loss(r_hat, rewards)
 
     def reset_parameters(self):
-        self.fc_1 = nn.Linear(self.in_size, self.hidden_size)
-        self.fc_2 = nn.Linear(self.hidden_size, self.hidden_size)
-        self.fc_3 = nn.Linear(self.hidden_size, 1)
-        self.to(self.device)
+        self.fc_1.reset_parameters()
+        self.fc_2.reset_parameters()
+        self.fc_3.reset_parameters()

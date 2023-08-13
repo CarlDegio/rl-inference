@@ -21,7 +21,7 @@ class Agent(object):
             while not done:
                 action = self.env.sample_action()
                 next_state, reward, done, _ = self.env.step(action)
-                buffer.add(state, action, reward, next_state)
+                buffer.add(state, action, reward, done)
                 state = deepcopy(next_state)
                 if done:
                     break

@@ -12,7 +12,6 @@ class Buffer(object):
             state_size,
             action_size,
             ensemble_size,
-            normalizer,
             signal_noise=None,
             buffer_size=10 ** 5,
             device="cpu",
@@ -30,12 +29,11 @@ class Buffer(object):
         self.rewards = np.zeros((buffer_size, 1), dtype=np.float32)
         self.done = np.zeros((buffer_size, 1), dtype=np.bool_)
 
-        # self.normalizer = normalizer
         self._total_steps = 0
 
     def add(self, state, action, reward, done):
         vec, img = state['vec'], state['img']
-        img = np.traspose(img, (2, 0, 1))
+        img = np.transpose(img, (2, 0, 1))
         idx = self._total_steps % self.buffer_size
 
         self.vec_obs[idx] = vec

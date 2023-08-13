@@ -43,19 +43,19 @@ def main(args):
     state_size = env.observation_space.shape[0]
 
     normalizer = Normalizer()
-    buffer = Buffer(state_size, action_size, args.ensemble_size, normalizer, device=DEVICE)
+    buffer = Buffer(state_size, action_size, args.ensemble_size, device=DEVICE)
     encoder = Encoder(device=DEVICE)
     decoder = Decoder(state_size, 10, device=DEVICE)
 
     ensemble = EnsembleModel(
         (state_size + 10) + action_size,
-        state_size,
+        state_size + 10,
         args.hidden_size,
         args.ensemble_size,
         normalizer,
         device=DEVICE,
     )
-    reward_model = RewardModel(state_size + action_size, args.hidden_size, device=DEVICE)
+    reward_model = RewardModel(state_size + 10 + action_size, args.hidden_size, device=DEVICE)
     trainer = Trainer(
         encoder,
         decoder,
@@ -103,6 +103,8 @@ def main(args):
         logger.log(msg.format(buffer.total_steps, buffer.total_steps * args.action_repeat))
         if episode % args.reset_interval == 0:
             trainer.reset_models()
+        vec_recon_loss,img_recon_loss = trainer.train_enc_dec()
+        logger.log_enc_dec_losses(vec_recon_loss, img_recon_loss)
         ensemble_loss, reward_loss = trainer.train()
         logger.log_losses(ensemble_loss, reward_loss)
 

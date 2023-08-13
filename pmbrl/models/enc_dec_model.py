@@ -45,10 +45,10 @@ class Decoder(nn.Module):
         # TODO 独立的img emb可以切换成混合的
         vec = embedded_obs[:, :self.vec_dim]
         embedded_img = embedded_obs[:, self.vec_dim:]
-        hidden = self.fc(embedded_img, dim=1)
+        hidden = self.fc(embedded_img)
         hidden = hidden.view(hidden.size(0), 256, 1, 1)
         hidden = F.relu(self.dc1(hidden))
         hidden = F.relu(self.dc2(hidden))
         hidden = F.relu(self.dc3(hidden))
-        obs = self.dc4(hidden)
-        return vec, obs
+        img = self.dc4(hidden)
+        return vec, img
