@@ -114,7 +114,7 @@ class Trainer(object):
             flatten_recon_vec_obs, flatten_recon_img_obs = self.decoder(embedded_obs)
             recon_vec_obs = flatten_recon_vec_obs.view(CHUNK_LENGTH,self.batch_size, 10)
             recon_img_obs = flatten_recon_img_obs.view(CHUNK_LENGTH,self.batch_size, 3, 64, 64)
-            self.optim.zero_grad()
+            self.enc_dec_optim.zero_grad()
             # vec_loss = VEC_RECON_SCALE * torch.nn.functional.mse_loss(vec_obs, recon_vec_obs).mean([0,1]).sum()
             img_loss = IMG_RECON_SCALE * torch.nn.functional.mse_loss(img_obs, recon_img_obs,reduction='none').mean([0,1]).sum()
             # recon_loss = vec_loss + img_loss
