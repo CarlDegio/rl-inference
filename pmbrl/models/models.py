@@ -85,29 +85,27 @@ class EnsembleModel(nn.Module):
 
     def forward(self, embedded, actions):
         # TODO normlizer
-        # norm_states, norm_actions = self._pre_process_model_inputs(states, actions)
+        norm_states, norm_actions = self._pre_process_model_inputs(embedded, actions)
         norm_delta_mean, norm_delta_var = self._propagate_network(
-            embedded, actions
+            norm_states, norm_actions
         )
-        # delta_mean, delta_var = self._post_process_model_outputs(
-        #     norm_delta_mean, norm_delta_var
-        # )
-        return norm_delta_mean, norm_delta_mean
+        delta_mean, delta_var = self._post_process_model_outputs(
+            norm_delta_mean, norm_delta_var
+        )
+        return delta_mean, delta_var
 
     def loss(self, embedded, actions, next_embedded):
-        vec_delta = next_embedded - embedded
-        # vec_delta = vec_delta*torch.tensor([])
-        target = vec_delta
+        embedded_delta = next_embedded - embedded
 
-        # states, actions = self._pre_process_model_inputs(states, actions)
-        # delta_targets = self._pre_process_model_targets(next_embeded)
-        delta_mu, delta_var = self._propagate_network(target, actions)
-        loss = (delta_mu - target) ** 2 / delta_var + torch.log(delta_var)
+        states, actions = self._pre_process_model_inputs(embedded, actions)
+        delta_targets = self._pre_process_model_targets(embedded_delta)
+        delta_mu, delta_var = self._propagate_network(embedded, actions)
+        loss = (delta_mu - delta_targets) ** 2 / delta_var + torch.log(delta_var)
         loss = loss.mean(-1).mean(-1).sum()
         return loss
 
     def sample(self, mean, var):
-        return Normal(mean, torch.sqrt(var)+1e-5).sample()
+        return Normal(mean, torch.sqrt(var)).sample()
 
     def reset_parameters(self):
         self.fc_1.reset_parameters()

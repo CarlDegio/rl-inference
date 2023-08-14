@@ -43,12 +43,9 @@ class Buffer(object):
         self.done[idx] = done
         self._total_steps += 1
 
-        # self.normalizer.update(state, action, vec_delta)
-        # TODO normalizer
-
     def save(self, dir_path='tactile_push_run'):
         now = datetime.datetime.now()
-        path = dir_path + f'/replay_buffer_{now.month:>2}{now.day:>2}_{now.hour:>2}{now.minute:>2}.npz'
+        path = dir_path + f'/replay_buffer.npz'
         np.savez_compressed(path,
                             vec_obs=self.vec_obs,
                             img_obs=self.img_obs,
@@ -59,7 +56,7 @@ class Buffer(object):
         print(f"saving buffer to {path}, length with {self._total_steps}")
 
     def load(self, dir_path='tactile_push_run', file='replay_buffer.npz'):
-        path= dir_path + file
+        path = dir_path + file
         print(f"loading replay buffer from {path}")
         data = np.load(path)
         self.vec_obs = data['vec_obs']

@@ -118,3 +118,6 @@ class Normalizer(object):
         )
         return state_delta_vars / (torch.clamp(stdev, min=1e-8) ** 2)
 
+    def reset_normalizer(self):
+        self.__init__()
+

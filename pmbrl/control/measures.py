@@ -93,8 +93,8 @@ class InformationGain(object):
         plan_horizon = delta_means.size(0)
         n_candidates = delta_means.size(2)
 
-        # delta_means = self.model.normalizer.renormalize_state_delta_means(delta_means)
-        # delta_vars = self.model.normalizer.renormalize_state_delta_vars(delta_vars)
+        delta_means = self.model.normalizer.renormalize_state_delta_means(delta_means)
+        delta_vars = self.model.normalizer.renormalize_state_delta_vars(delta_vars)
         # TODO predict value nan. big value
         delta_states = self.model.sample(delta_means, delta_vars)
         info_gains = (
