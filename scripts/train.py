@@ -42,7 +42,7 @@ def main(args):
     action_size = env.action_space.shape[0]
     state_size = env.observation_space.shape[0]
 
-    normalizer = Normalizer()
+    normalizer = None
     buffer = Buffer(state_size, action_size, args.ensemble_size, device=DEVICE)
     encoder = Encoder(device=DEVICE)
     decoder = Decoder(state_size, 10, device=DEVICE)
@@ -101,16 +101,13 @@ def main(args):
 
         msg = "Training on [{}/{}] data points"
         logger.log(msg.format(buffer.total_steps, buffer.total_steps * args.action_repeat))
-        if episode % args.reset_interval == 0:
-            trainer.reset_models()
-            normalizer.reset_normalizer()
+        # if episode % args.reset_interval == 0:
+        #     trainer.reset_models()
 
-        vec_recon_loss, img_recon_loss = trainer.train_enc_dec()
+        # vec_recon_loss, img_recon_loss = trainer.train_enc_dec()
+        # logger.log_enc_dec_losses(vec_recon_loss, img_recon_loss)
+        ensemble_loss, reward_loss, vec_recon_loss, img_recon_loss = trainer.train()
         logger.log_enc_dec_losses(vec_recon_loss, img_recon_loss)
-
-        set_normalizer(encoder, buffer, normalizer)
-
-        ensemble_loss, reward_loss = trainer.train()
         logger.log_losses(ensemble_loss, reward_loss)
 
         recorder = None
@@ -135,28 +132,6 @@ def main(args):
 
         if episode % 10 == 0:
             buffer.save()
-
-
-def set_normalizer(encoder: Encoder, buffer: Buffer, normalizer: Normalizer):
-    vec_obs, img_obs, actions, _, _ = buffer.sample(200, chunk_length=10)
-    vec_obs = torch.as_tensor(vec_obs, device=DEVICE).transpose(0, 1)  # horizon, batch, dim
-    flatten_vec_obs = vec_obs.reshape(-1, 10)
-    img_obs = torch.as_tensor(img_obs, device=DEVICE).transpose(0, 1)
-    flatten_img_obs = img_obs.reshape(-1, 3, 64, 64)
-    actions = torch.as_tensor(actions, device=DEVICE).transpose(0, 1)
-    with torch.no_grad():
-        embedded_obs = encoder(flatten_vec_obs, flatten_img_obs)
-        embedded_obs = embedded_obs.view(10, 200, 20)
-        embedded_obs_delta = embedded_obs[1:] - embedded_obs[:-1]  # 9*100*20
-        embedded_obs_delta = embedded_obs_delta.view(-1, 20).cpu().numpy()
-        actions = actions[:-1].reshape(-1, 3).cpu().numpy()
-        embedded_obs = embedded_obs[:-1].view(-1, 20).cpu().numpy()
-        for i in range(1800):
-            normalizer.update(embedded_obs[i], actions[i], embedded_obs_delta[i])
-        print("normalizer updated")
-        print("state_mean:", normalizer.state_mean, "state_std:", normalizer.state_stdev)
-        print("action_mean:", normalizer.action_mean, "action_std:", normalizer.action_stdev)
-        print("state_delta_mean:", normalizer.state_delta_mean, "state_delta_std:", normalizer.state_delta_stdev)
 
 
 if __name__ == "__main__":

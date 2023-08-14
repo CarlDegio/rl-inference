@@ -85,22 +85,21 @@ class EnsembleModel(nn.Module):
 
     def forward(self, embedded, actions):
         # TODO normlizer
-        norm_states, norm_actions = self._pre_process_model_inputs(embedded, actions)
-        norm_delta_mean, norm_delta_var = self._propagate_network(
-            norm_states, norm_actions
+        # norm_states, norm_actions = self._pre_process_model_inputs(embedded, actions)
+        next_embedded_mean, next_embedded_var = self._propagate_network(
+            embedded, actions
         )
-        delta_mean, delta_var = self._post_process_model_outputs(
-            norm_delta_mean, norm_delta_var
-        )
-        return delta_mean, delta_var
+        # delta_mean, delta_var = self._post_process_model_outputs(
+        #     norm_delta_mean, norm_delta_var
+        # )
+        return next_embedded_mean, next_embedded_var
 
     def loss(self, embedded, actions, next_embedded):
-        embedded_delta = next_embedded - embedded
 
-        states, actions = self._pre_process_model_inputs(embedded, actions)
-        delta_targets = self._pre_process_model_targets(embedded_delta)
-        delta_mu, delta_var = self._propagate_network(embedded, actions)
-        loss = (delta_mu - delta_targets) ** 2 / delta_var + torch.log(delta_var)
+        # states, actions = self._pre_process_model_inputs(embedded, actions)
+        # delta_targets = self._pre_process_model_targets(embedded_delta)
+        next_mu, next_var = self._propagate_network(embedded, actions)
+        loss = (next_mu - next_embedded) ** 2 / next_var + torch.log(next_var)
         loss = loss.mean(-1).mean(-1).sum()
         return loss
 
