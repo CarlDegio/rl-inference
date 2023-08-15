@@ -248,14 +248,14 @@ def draw_tactile_compare(tactile_reward,success_reward):
 
 
 if __name__ == "__main__":
-    dir_name = "log_tactile_push_ball_incline_dense_0.4reset/"
-    file_path = "../" + dir_name + "metrics.json"
+    dir_name = "log_tactile_push_ball_vec/"
+    file_path = "./" + dir_name + "metrics.json"
     data = read_json(file_path)
 
-    draw_tactile_compare(data["rewards"], 1)
-    draw_sac_compare()
+    # draw_tactile_compare(data["rewards"], 1)
+    # draw_sac_compare()
 
-    # draw_episode_reward(data["rewards"])
+    draw_episode_reward(data["rewards"])
     # draw_success_rate(data["rewards"], 1)
     # draw_episode_reward_mean(data["rewards"])
     # draw_episode_planer_reward(data["reward_stats"])

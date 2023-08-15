@@ -127,8 +127,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--logdir", type=str, default="log")
-    parser.add_argument("--config_name", type=str, default="mountain_car")
+    parser.add_argument("--logdir", type=str, default="tactile_push_ball")
+    parser.add_argument("--config_name", type=str, default="tactile_push_ball")
     parser.add_argument("--strategy", type=str, default="information")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
