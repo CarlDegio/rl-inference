@@ -5,8 +5,8 @@ import torch
 
 CHUNK_LENGTH = 11
 ENC_DEC_TRAIN_EPOCH = 50
-VEC_RECON_SCALE = 10
-IMG_RECON_SCALE = 1
+VEC_RECON_SCALE = 1
+IMG_RECON_SCALE = 0.1
 
 
 class Trainer(object):
@@ -77,18 +77,19 @@ class Trainer(object):
             embedded_obs = self.encoder(flatten_vec_obs, flatten_img_obs)
             embedded_obs = embedded_obs.view(CHUNK_LENGTH, self.batch_size, 20)
 
-            e_loss = self.ensemble.loss(embedded_obs[:-1, ],
+            e_loss, next_embedd_hat = self.ensemble.loss(embedded_obs[:-1, ],
                                         actions[:-1, ],
                                         embedded_obs[1:, ])
             r_loss = self.reward_model.loss(embedded_obs, actions, rewards)
-            (e_loss + r_loss).backward()
+            (e_loss + r_loss).backward(retain_graph=True)
 
-            flatten_recon_vec_obs, flatten_recon_img_obs = self.decoder(embedded_obs)
-            recon_vec_obs = flatten_recon_vec_obs.view(CHUNK_LENGTH, self.batch_size, 10)
-            recon_img_obs = flatten_recon_img_obs.view(CHUNK_LENGTH, self.batch_size, 3, 64, 64)
-            vec_loss = VEC_RECON_SCALE * torch.nn.functional.mse_loss(vec_obs, recon_vec_obs, reduction='none').\
+            next_embedd_hat = next_embedd_hat.view(-1, 20)
+            flatten_recon_vec_obs, flatten_recon_img_obs = self.decoder(next_embedd_hat)
+            recon_vec_obs = flatten_recon_vec_obs.view(CHUNK_LENGTH-1, self.batch_size, 10)
+            recon_img_obs = flatten_recon_img_obs.view(CHUNK_LENGTH-1, self.batch_size, 3, 64, 64)
+            vec_loss = VEC_RECON_SCALE * torch.nn.functional.mse_loss(vec_obs[1:], recon_vec_obs, reduction='none').\
                 mean([0, 1]).sum()
-            img_loss = IMG_RECON_SCALE * torch.nn.functional.mse_loss(img_obs, recon_img_obs, reduction='none').\
+            img_loss = IMG_RECON_SCALE * torch.nn.functional.mse_loss(img_obs[1:], recon_img_obs, reduction='none').\
                 mean([0, 1]).sum()
             recon_loss = vec_loss + img_loss
             recon_loss.backward()

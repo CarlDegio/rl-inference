@@ -101,7 +101,7 @@ class EnsembleModel(nn.Module):
         next_mu, next_var = self._propagate_network(embedded, actions)
         loss = (next_mu - next_embedded) ** 2 / next_var + torch.log(next_var)
         loss = loss.mean(-1).mean(-1).sum()
-        return loss
+        return loss, next_mu
 
     def sample(self, mean, var):
         return Normal(mean, torch.sqrt(var)).sample()

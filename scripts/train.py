@@ -45,7 +45,7 @@ def main(args):
     normalizer = None
     buffer = Buffer(state_size, action_size, args.ensemble_size, device=DEVICE)
     encoder = Encoder(device=DEVICE)
-    decoder = Decoder(state_size, 10, device=DEVICE)
+    decoder = Decoder(state_size, 20, device=DEVICE)
 
     ensemble = EnsembleModel(
         (state_size + 10) + action_size,

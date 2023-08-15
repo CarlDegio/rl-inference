@@ -79,11 +79,11 @@ class Planner(nn.Module):
                 self.action_size,
                 device=self.device,
             )
-            states, delta_vars, delta_means = self.perform_rollout(embedded_state, actions)
+            states, next_states_vars, next_states_means = self.perform_rollout(embedded_state, actions)
 
             returns = torch.zeros(self.n_candidates).float().to(self.device)
             if self.use_exploration:
-                expl_bonus = self.measure(delta_means, delta_vars)
+                expl_bonus = self.measure(next_states_means, next_states_vars)
                 returns += expl_bonus
                 self.trial_bonuses.append(expl_bonus)
 
@@ -107,8 +107,8 @@ class Planner(nn.Module):
     def perform_rollout(self, current_state, actions):
         T = self.plan_horizon + 1
         states = [torch.empty(0)] * T
-        delta_means = [torch.empty(0)] * T
-        delta_vars = [torch.empty(0)] * T
+        next_state_means = [torch.empty(0)] * T
+        next_state_vars = [torch.empty(0)] * T
 
         current_state = current_state.unsqueeze(dim=0).unsqueeze(dim=0)
         current_state = current_state.repeat(self.ensemble_size, self.n_candidates, 1)
@@ -118,18 +118,18 @@ class Planner(nn.Module):
         actions = actions.repeat(self.ensemble_size, 1, 1, 1).permute(1, 0, 2, 3)
 
         for t in range(self.plan_horizon):
-            delta_mean, delta_var = self.ensemble(states[t], actions[t])
+            next_state_mean, next_state_var = self.ensemble(states[t], actions[t])
             if self.use_mean:
-                states[t + 1] = states[t] + delta_mean
+                states[t + 1] = next_state_mean
             else:
-                states[t + 1] = states[t] + self.ensemble.sample(delta_mean, delta_var)
-            delta_means[t + 1] = delta_mean
-            delta_vars[t + 1] = delta_var
+                states[t + 1] = self.ensemble.sample(next_state_mean, next_state_var)
+            next_state_means[t + 1] = next_state_mean
+            next_state_vars[t + 1] = next_state_var
 
         states = torch.stack(states[1:], dim=0)
-        delta_vars = torch.stack(delta_vars[1:], dim=0)
-        delta_means = torch.stack(delta_means[1:], dim=0)
-        return states, delta_vars, delta_means
+        next_state_vars = torch.stack(next_state_vars[1:], dim=0)
+        next_state_means = torch.stack(next_state_means[1:], dim=0)
+        return states, next_state_vars, next_state_means
 
     def _fit_gaussian(self, actions, returns):
         returns = torch.where(torch.isnan(returns), torch.zeros_like(returns), returns)

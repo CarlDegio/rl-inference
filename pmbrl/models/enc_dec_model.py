@@ -39,11 +39,11 @@ class Decoder(nn.Module):
     from state and rnn hidden state
     """
 
-    def __init__(self, vec_dim, embedded_img_dim, device):
+    def __init__(self, vec_dim, embedded_dim, device):
         super(Decoder, self).__init__()
         self.vec_dim = vec_dim
-        self.embedded_img_dim = embedded_img_dim
-        self.fc = nn.Linear(embedded_img_dim, 256)
+        self.embedded_img_dim = embedded_dim
+        self.fc = nn.Linear(embedded_dim, 256)
         self.dc1 = nn.ConvTranspose2d(256, 64, kernel_size=5, stride=2)
         self.dc2 = nn.ConvTranspose2d(64, 32, kernel_size=5, stride=2)
         self.dc3 = nn.ConvTranspose2d(32, 16, kernel_size=6, stride=2)
@@ -55,9 +55,9 @@ class Decoder(nn.Module):
     def forward(self, embedded_obs):
         # TODO 独立的img emb可以切换成混合的
         hidden = F.relu(self.fc(embedded_obs))
-        hidden = hidden.view(hidden.size(0), 256, 1, 1)
         vec_hidden = F.relu(self.fc1(hidden))
         vec = self.fc2(vec_hidden)
+        hidden = hidden.view(hidden.size(0), 256, 1, 1)
         hidden = F.relu(self.dc1(hidden))
         hidden = F.relu(self.dc2(hidden))
         hidden = F.relu(self.dc3(hidden))
