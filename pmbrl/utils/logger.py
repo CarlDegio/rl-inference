@@ -31,11 +31,12 @@ class Logger(object):
         msg = "Ensemble loss {:.2f} / Reward Loss {:.2f}"
         self.log(msg.format(e_loss, r_loss))
 
-    def log_enc_dec_losses(self, vec_recon_loss, img_recon_loss):
+    def log_enc_dec_losses(self, vec_recon_loss, img_recon_loss, regular_loss):
         self.metrics["vec_recon_losses"].append(vec_recon_loss)
         self.metrics["img_recon_losses"].append(img_recon_loss)
-        msg = "vec recon loss {:.2f} / img recon loss {:.2f}"
-        self.log(msg.format(vec_recon_loss, img_recon_loss))
+        self.metrics["regular_losses"].append(regular_loss)
+        msg = "vec recon loss {:.2f} / img recon loss {:.2f} / regular loss {:.2f}"
+        self.log(msg.format(vec_recon_loss, img_recon_loss, regular_loss))
 
     def log_coverage(self, coverage):
         self.metrics["coverage"].append(coverage)
@@ -83,6 +84,7 @@ class Logger(object):
             "r_losses": [],
             'vec_recon_losses': [],
             'img_recon_losses': [],
+            'regular_losses': [],
             "rewards": [],
             "steps": [],
             "times": [],

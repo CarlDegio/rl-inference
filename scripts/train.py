@@ -106,8 +106,8 @@ def main(args):
 
         # vec_recon_loss, img_recon_loss = trainer.train_enc_dec()
         # logger.log_enc_dec_losses(vec_recon_loss, img_recon_loss)
-        ensemble_loss, reward_loss, vec_recon_loss, img_recon_loss = trainer.train()
-        logger.log_enc_dec_losses(vec_recon_loss, img_recon_loss)
+        ensemble_loss, reward_loss, vec_recon_loss, img_recon_loss, regular_loss = trainer.train()
+        logger.log_enc_dec_losses(vec_recon_loss, img_recon_loss, regular_loss)
         logger.log_losses(ensemble_loss, reward_loss)
 
         recorder = None
