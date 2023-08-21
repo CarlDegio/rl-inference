@@ -243,7 +243,7 @@ class TactilePushBallConfig(Config):
         self.logdir = "tactile_push_ball"
         self.env_name = "TactilePushBall"
         self.n_episodes = 200
-        self.n_seed_episodes = 5
+        self.n_seed_episodes = 50
         self.max_episode_len = 80
         self.action_repeat = 2
 
@@ -251,15 +251,16 @@ class TactilePushBallConfig(Config):
         self.hidden_size = 400
 
         self.n_train_epochs = 100
-        self.batch_size = 200
+        self.batch_size = 100
 
         self.plan_horizon = 20
         self.optimisation_iters = 10
         self.n_candidates = 500
         self.top_candidates = 20
 
-        self.use_exploration = True
+        self.use_exploration = False
         self.use_reward = True
         self.use_mean = True
         self.expl_scale = 0.01
         self.learning_rate = 1e-4
+        self.action_noise = 0.04

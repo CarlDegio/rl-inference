@@ -55,7 +55,7 @@ def main(args):
         normalizer,
         device=DEVICE,
     )
-    reward_model = RewardModel(state_size + 10 + action_size, args.hidden_size, device=DEVICE)
+    reward_model = RewardModel(state_size + 10, args.hidden_size, device=DEVICE)
     trainer = Trainer(
         encoder,
         decoder,

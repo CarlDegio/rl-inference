@@ -58,12 +58,16 @@ class Planner(nn.Module):
         self.trial_rewards = []
         self.trial_bonuses = []
         self.to(device)
+        self.predict_embedded_state = 0
 
     def forward(self, state):
 
         vec_obs = torch.as_tensor(state['vec'], dtype=torch.float32).to(self.device).unsqueeze(0)
         img_obs = torch.as_tensor(np.transpose(state['img'], (2, 0, 1)), dtype=torch.float32).to(self.device).unsqueeze(0)
         embedded_state = self.encoder(vec_obs, img_obs).squeeze()
+        embedded_state_error = embedded_state-self.predict_embedded_state
+        print("embedded_loss: ", embedded_state_error)
+        print("embedded_value:", embedded_state)
         embedding_state_size = embedded_state.size(0)
 
         action_mean = torch.zeros(self.plan_horizon, 1, self.action_size).to(
@@ -91,7 +95,7 @@ class Planner(nn.Module):
                 _states = states.view(-1, embedding_state_size)
                 _actions = actions.unsqueeze(0).repeat(self.ensemble_size, 1, 1, 1)
                 _actions = _actions.view(-1, self.action_size)
-                rewards = self.reward_model(_states, _actions)
+                rewards = self.reward_model(_states)
                 rewards = rewards * self.reward_scale
                 rewards = rewards.view(
                     self.plan_horizon, self.ensemble_size, self.n_candidates
@@ -101,8 +105,14 @@ class Planner(nn.Module):
                 self.trial_rewards.append(rewards)
 
             action_mean, action_std_dev = self._fit_gaussian(actions, returns)
+        output_action = action_mean[0].squeeze(dim=0)
 
-        return action_mean[0].squeeze(dim=0)
+        next_state_mean, next_state_var = self.ensemble(embedded_state.unsqueeze(dim=0).unsqueeze(dim=0).repeat(self.ensemble_size, 1, 1)
+                                                        , output_action.unsqueeze(dim=0).unsqueeze(dim=0).repeat(self.ensemble_size, 1, 1))
+        reward_mean = self.reward_model(next_state_mean).mean()
+        next_state_mean = next_state_mean.mean(dim=0).squeeze()
+        self.predict_embedded_state = next_state_mean
+        return output_action, reward_mean
 
     def perform_rollout(self, current_state, actions):
         T = self.plan_horizon + 1

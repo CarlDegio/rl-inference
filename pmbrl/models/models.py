@@ -74,6 +74,7 @@ class EnsembleModel(nn.Module):
         self.fc_4 = EnsembleDenseLayer(
             hidden_size, out_size * 2, ensemble_size, act_fn="linear"
         )
+        self.dropout = nn.Dropout(p=0.2)
 
         self.ensemble_size = ensemble_size
         self.normalizer = normalizer
@@ -84,8 +85,6 @@ class EnsembleModel(nn.Module):
         self.to(device)
 
     def forward(self, embedded, actions):
-        # TODO normlizer
-        # norm_states, norm_actions = self._pre_process_model_inputs(embedded, actions)
         next_embedded_mean, next_embedded_var = self._propagate_network(
             embedded, actions
         )
@@ -95,12 +94,17 @@ class EnsembleModel(nn.Module):
         return next_embedded_mean, next_embedded_var
 
     def loss(self, embedded, actions, next_embedded):
-
+        index = torch.randperm(embedded.shape[0])
+        inverse_index = torch.argsort(index)
+        embedded = embedded[index]
+        actions = actions[index]
+        next_embedded = next_embedded[index]
         # states, actions = self._pre_process_model_inputs(embedded, actions)
         # delta_targets = self._pre_process_model_targets(embedded_delta)
         next_mu, next_var = self._propagate_network(embedded, actions)
-        loss = (next_mu - next_embedded) ** 2 / next_var + torch.log(next_var)
+        loss = (next_mu - next_embedded) ** 2 / next_var + 0.1 * torch.log(next_var)
         loss = loss.mean(-1).mean(-1).sum()
+        next_mu = next_mu[inverse_index]
         return loss, next_mu
 
     def sample(self, mean, var):
@@ -117,6 +121,7 @@ class EnsembleModel(nn.Module):
         inp = torch.cat((states, actions), dim=2)
         op = self.fc_1(inp)
         op = self.fc_2(op)
+        op = self.dropout(op)
         op = self.fc_3(op)
         op = self.fc_4(op)
 
@@ -158,19 +163,21 @@ class RewardModel(nn.Module):
         self.fc_1 = nn.Linear(self.in_size, self.hidden_size)
         self.fc_2 = nn.Linear(self.hidden_size, self.hidden_size)
         self.fc_3 = nn.Linear(self.hidden_size, 1)
+        self.dropout1 = nn.Dropout(p=0.2)
+        self.dropout2 = nn.Dropout(p=0.2)
         self.to(device)
 
-    def forward(self, embedding_states, actions):
-        inp = torch.cat((embedding_states, actions), dim=-1)
-        reward = self.act_fn(self.fc_1(inp))
-        reward = self.act_fn(self.fc_2(reward))
+    def forward(self, embedding_states):
+        inp = embedding_states
+        reward = self.act_fn(self.dropout1(self.fc_1(inp)))
+        reward = self.act_fn(self.dropout2(self.fc_2(reward)))
         reward = self.fc_3(reward).squeeze(dim=1)
         return reward
 
-    def loss(self, states, actions, rewards):
+    def loss(self, states, rewards):
         # 加入L2正则项抵抗过拟合，失败，会导致奖励拟合的效果变差（任意输入，都相同输出）
-        r_hat = self(states, actions)
-        return F.mse_loss(r_hat, rewards)
+        r_hat = self(states)
+        return F.l1_loss(r_hat, rewards)
 
     def reset_parameters(self):
         self.fc_1.reset_parameters()

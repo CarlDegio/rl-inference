@@ -31,16 +31,18 @@ class Agent(object):
         total_reward = 0
         total_steps = 0
         done = False
-
         with torch.no_grad():
             state = self.env.reset()
             while not done:
-                action = self.planner(state)
+                action, reward_predict = self.planner(state)
                 if action_noise is not None:
                     action = self._add_action_noise(action, action_noise)
                 action = action.cpu().detach().numpy()
+                reward_predict = reward_predict.cpu().detach().numpy()
 
                 next_state, reward, done, _ = self.env.step(action)
+                print("reward_predict loss: ", reward_predict-reward)
+                print("reward value:", reward)
                 total_reward += reward
                 total_steps += 1
 
@@ -50,7 +52,7 @@ class Agent(object):
                     )
 
                 if buffer is not None:
-                    buffer.add(state, action, reward, next_state)
+                    buffer.add(state, action, reward, done)
                 if recorder is not None:
                     recorder.capture_frame()
 

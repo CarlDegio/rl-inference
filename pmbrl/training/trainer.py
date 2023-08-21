@@ -7,7 +7,8 @@ CHUNK_LENGTH = 11
 ENC_DEC_TRAIN_EPOCH = 50
 VEC_RECON_SCALE = 1
 IMG_RECON_SCALE = 0.1
-REGULARIZATION_SCALE = 1
+REGULARIZATION_SCALE = 0.1
+REWARD_SCALE = 10
 
 
 class Trainer(object):
@@ -39,11 +40,9 @@ class Trainer(object):
         self.logger = logger
         self.device = device
 
-        self.params = list(ensemble.parameters()) + list(reward_model.parameters())
+        self.params = list(ensemble.parameters()) + list(reward_model.parameters()) + \
+                      list(encoder.parameters()) + list(decoder.parameters())
         self.optim = torch.optim.Adam(self.params, lr=learning_rate, eps=epsilon)
-
-        self.enc_dec_params = list(encoder.parameters()) + list(decoder.parameters())
-        self.enc_dec_optim = torch.optim.Adam(self.enc_dec_params, lr=1e-4, eps=1e-4)
 
     def train(self):
         e_losses = []
@@ -52,6 +51,12 @@ class Trainer(object):
         img_recon_losses = []
         regularization_losses = []
         n_batches = []
+
+        self.ensemble.train()
+        self.reward_model.train()
+        self.encoder.train()
+        self.decoder.train()
+
         for epoch in range(1, self.n_train_epochs + 1):
             e_losses.append([])
             r_losses.append([])
@@ -61,10 +66,6 @@ class Trainer(object):
             n_batches.append(0)
 
             vec_obs, img_obs, actions, rewards, done = self.buffer.sample(self.batch_size, chunk_length=CHUNK_LENGTH)
-            self.ensemble.train()
-            self.reward_model.train()
-            self.encoder.train()
-            self.decoder.train()
 
             vec_obs = torch.as_tensor(vec_obs, device=self.device).transpose(0, 1)
             img_obs = torch.as_tensor(img_obs, device=self.device).transpose(0, 1)
@@ -75,21 +76,22 @@ class Trainer(object):
             flatten_img_obs = img_obs.reshape(-1, 3, 64, 64)
 
             self.optim.zero_grad()
-            self.enc_dec_optim.zero_grad()
             embedded_obs = self.encoder(flatten_vec_obs, flatten_img_obs)
             embedded_obs = embedded_obs.view(CHUNK_LENGTH, self.batch_size, 20)
 
             e_loss, next_embedd_hat = self.ensemble.loss(embedded_obs[:-1, ],
                                                          actions[:-1, ],
                                                          embedded_obs[1:, ])
-            r_loss = self.reward_model.loss(embedded_obs, actions, rewards)
+            r_loss = self.reward_model.loss(embedded_obs[1:], rewards[:-1]) * REWARD_SCALE
 
             # regularization_loss = torch.dot(embedded_obs[:-1].reshape(10 * self.batch_size * 20),
             #                                 next_embedd_hat.reshape(10 * self.batch_size * 20)) / 10 \
             #                       / self.batch_size
-            regularization_loss = torch.nn.L1Loss(reduction='none')(embedded_obs[:-1],embedded_obs[1:]).mean([0, 1]).sum()
-            regularization_loss = torch.clamp(regularization_loss, max=20)
+            regularization_loss = torch.nn.L1Loss(reduction='none')(embedded_obs[:-1], embedded_obs[1:]).mean(
+                [0, 1]).sum()
+            regularization_loss = torch.clamp(regularization_loss, max=10)
             regularization_loss = -regularization_loss * REGULARIZATION_SCALE
+
             next_embedd_hat = next_embedd_hat.view(-1, 20)
             flatten_recon_vec_obs, flatten_recon_img_obs = self.decoder(next_embedd_hat)
             recon_vec_obs = flatten_recon_vec_obs.view(CHUNK_LENGTH - 1, self.batch_size, 10)
@@ -98,17 +100,14 @@ class Trainer(object):
                 mean([0, 1]).sum()
             img_loss = IMG_RECON_SCALE * torch.nn.functional.mse_loss(img_obs[1:], recon_img_obs, reduction='none'). \
                 mean([0, 1]).sum()
-            recon_loss = vec_loss + img_loss + regularization_loss
-            loss=recon_loss+e_loss+r_loss
+            recon_loss = vec_loss + img_loss #+ regularization_loss
+            loss = recon_loss + e_loss + r_loss
             loss.backward()
 
             torch.nn.utils.clip_grad_norm_(
                 self.params, self.grad_clip_norm, norm_type=2
             )
-            torch.nn.utils.clip_grad_norm_(
-                self.enc_dec_params, self.grad_clip_norm, norm_type=2
-            )
-            self.enc_dec_optim.step()
+
             self.optim.step()
             # TODO 先更新enc和dec，再更新ensemble
 
@@ -129,6 +128,11 @@ class Trainer(object):
                           "| img_recon {:.2f} | regular{:.2f} ]"
                 self.logger.log(message.format(epoch, avg_e_loss, avg_r_loss, avg_vec_recon_loss,
                                                avg_img_recon_loss, avg_reg_loss))
+
+        self.ensemble.eval()
+        self.reward_model.eval()
+        self.encoder.eval()
+        self.decoder.eval()
 
         return (
             self._get_avg_loss(e_losses, n_batches, epoch),
