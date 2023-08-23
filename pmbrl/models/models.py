@@ -183,3 +183,31 @@ class RewardModel(nn.Module):
         self.fc_1.reset_parameters()
         self.fc_2.reset_parameters()
         self.fc_3.reset_parameters()
+
+
+class CriticModel(nn.Module):
+    def __init__(self, state_size, actions_size, embedded_size, hidden_size, act_fn="relu", device="cuda"):
+        super().__init__()
+        self.in_size = state_size + actions_size + embedded_size
+        self.hidden_size = hidden_size
+        self.device = device
+        self.act_fn = getattr(F, act_fn)
+
+        self.fc_1 = nn.Linear(self.in_size, self.hidden_size)
+        self.fc_2 = nn.Linear(self.hidden_size, self.hidden_size)
+        self.fc_3 = nn.Linear(self.hidden_size, 1)
+        self.dropout1 = nn.Dropout(p=0.2)
+
+        self.to(device)
+
+    def forward(self, vec_obs,action,next_embedding):
+        inp = torch.cat((vec_obs, action, next_embedding), dim=2)
+        value = self.act_fn(self.dropout1(self.fc_1(inp)))
+        value = self.act_fn(self.fc_2(value))
+        value = self.fc_3(value).squeeze(dim=2)
+        return value
+
+    def reset_parameters(self):
+        self.fc_1.reset_parameters()
+        self.fc_2.reset_parameters()
+        self.fc_3.reset_parameters()

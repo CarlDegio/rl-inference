@@ -6,9 +6,9 @@ import torch
 CHUNK_LENGTH = 11
 ENC_DEC_TRAIN_EPOCH = 50
 VEC_RECON_SCALE = 1
-IMG_RECON_SCALE = 0.1
+IMG_RECON_SCALE = 0.01
 REGULARIZATION_SCALE = 0.1
-REWARD_SCALE = 10
+REWARD_SCALE = 1
 
 
 class Trainer(object):
@@ -16,6 +16,7 @@ class Trainer(object):
             self,
             encoder,
             decoder,
+            critic,
             ensemble,
             reward_model,
             buffer,
@@ -29,6 +30,7 @@ class Trainer(object):
     ):
         self.encoder = encoder
         self.decoder = decoder
+        self.critic = critic
         self.ensemble = ensemble
         self.reward_model = reward_model
         self.buffer = buffer
@@ -42,7 +44,9 @@ class Trainer(object):
 
         self.params = list(ensemble.parameters()) + list(reward_model.parameters()) + \
                       list(encoder.parameters()) + list(decoder.parameters())
+        self.critic_params = list(critic.parameters())
         self.optim = torch.optim.Adam(self.params, lr=learning_rate, eps=epsilon)
+        self.critic_optim = torch.optim.Adam(self.critic_params, lr=learning_rate, eps=epsilon)
 
     def train(self):
         e_losses = []
@@ -56,6 +60,7 @@ class Trainer(object):
         self.reward_model.train()
         self.encoder.train()
         self.decoder.train()
+        self.critic.train()
 
         for epoch in range(1, self.n_train_epochs + 1):
             e_losses.append([])
@@ -78,6 +83,13 @@ class Trainer(object):
             self.optim.zero_grad()
             embedded_obs = self.encoder(flatten_vec_obs, flatten_img_obs)
             embedded_obs = embedded_obs.view(CHUNK_LENGTH, self.batch_size, 20)
+            # critic_value = self.critic(vec_obs[:-1, :1].repeat(1, self.batch_size, 1),
+            #                            actions[:-1, :1].repeat(1, self.batch_size, 1),
+            #                            embedded_obs[1:, ])
+            # exp_critic_value = torch.exp(critic_value)
+            # critic_loss = torch.log(exp_critic_value[:, 0] * self.batch_size / (exp_critic_value.sum(1))).mean()
+            # critic_loss.backward(retain_graph=True)
+            # self.critic_optim.zero_grad()
 
             e_loss, next_embedd_hat = self.ensemble.loss(embedded_obs[:-1, ],
                                                          actions[:-1, ],
@@ -89,8 +101,8 @@ class Trainer(object):
             #                       / self.batch_size
             regularization_loss = torch.nn.L1Loss(reduction='none')(embedded_obs[:-1], embedded_obs[1:]).mean(
                 [0, 1]).sum()
-            regularization_loss = torch.clamp(regularization_loss, max=10)
-            regularization_loss = -regularization_loss * REGULARIZATION_SCALE
+            regularization_loss = torch.clamp(regularization_loss, max=1)
+            regularization_loss = -regularization_loss * REGULARIZATION_SCALE # TODO 有点问题，再思考下
 
             next_embedd_hat = next_embedd_hat.view(-1, 20)
             flatten_recon_vec_obs, flatten_recon_img_obs = self.decoder(next_embedd_hat)
@@ -100,7 +112,7 @@ class Trainer(object):
                 mean([0, 1]).sum()
             img_loss = IMG_RECON_SCALE * torch.nn.functional.mse_loss(img_obs[1:], recon_img_obs, reduction='none'). \
                 mean([0, 1]).sum()
-            recon_loss = vec_loss + img_loss #+ regularization_loss
+            recon_loss = vec_loss + img_loss  # + regularization_loss
             loss = recon_loss + e_loss + r_loss
             loss.backward()
 
@@ -109,7 +121,18 @@ class Trainer(object):
             )
 
             self.optim.step()
-            # TODO 先更新enc和dec，再更新ensemble
+
+            # critic_value = self.critic(vec_obs[:-1, :1].repeat(1, self.batch_size, 1),
+            #                            actions[:-1, :1].repeat(1, self.batch_size, 1),
+            #                            embedded_obs[1:, ].detach())
+            # exp_critic_value = torch.exp(critic_value)
+            # critic_loss = -torch.log(exp_critic_value[:, 0] * self.batch_size / (exp_critic_value.sum(1))).mean()
+            # critic_loss.backward()
+            # torch.nn.utils.clip_grad_norm_(
+            #     self.critic_params, self.grad_clip_norm, norm_type=2
+            # )
+            # self.critic_optim.step()
+
 
             e_losses[epoch - 1].append(e_loss.item())
             r_losses[epoch - 1].append(r_loss.item())
@@ -133,6 +156,7 @@ class Trainer(object):
         self.reward_model.eval()
         self.encoder.eval()
         self.decoder.eval()
+        self.critic.eval()
 
         return (
             self._get_avg_loss(e_losses, n_batches, epoch),

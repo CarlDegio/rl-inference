@@ -14,7 +14,7 @@ sys.path.append(str(pathlib.Path(__file__).parent.parent))
 
 from pmbrl.envs import GymEnv
 from pmbrl.training import Normalizer, Buffer, Trainer
-from pmbrl.models import EnsembleModel, RewardModel, Encoder, Decoder
+from pmbrl.models import EnsembleModel, RewardModel, Encoder, Decoder, CriticModel
 from pmbrl.control import Planner, Agent
 from pmbrl.utils import Logger
 from pmbrl import get_config
@@ -56,9 +56,11 @@ def main(args):
         device=DEVICE,
     )
     reward_model = RewardModel(state_size + 10, args.hidden_size, device=DEVICE)
+    critic_model = CriticModel(state_size, action_size, 20, args.hidden_size, device=DEVICE)
     trainer = Trainer(
         encoder,
         decoder,
+        critic_model,
         ensemble,
         reward_model,
         buffer,
