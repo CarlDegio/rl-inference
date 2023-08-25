@@ -9,7 +9,7 @@ VEC_RECON_SCALE = 1
 IMG_RECON_SCALE = 0.01
 REGULARIZATION_SCALE = 0.1
 REWARD_SCALE = 1
-
+EMBEDDING_SIZE = 20
 
 class Trainer(object):
     def __init__(
@@ -82,7 +82,7 @@ class Trainer(object):
 
             self.optim.zero_grad()
             embedded_obs = self.encoder(flatten_vec_obs, flatten_img_obs)
-            embedded_obs = embedded_obs.view(CHUNK_LENGTH, self.batch_size, 20)
+            embedded_obs = embedded_obs.view(CHUNK_LENGTH, self.batch_size, EMBEDDING_SIZE)
             # critic_value = self.critic(vec_obs[:-1, :1].repeat(1, self.batch_size, 1),
             #                            actions[:-1, :1].repeat(1, self.batch_size, 1),
             #                            embedded_obs[1:, ])
@@ -104,7 +104,7 @@ class Trainer(object):
             regularization_loss = torch.clamp(regularization_loss, max=1)
             regularization_loss = -regularization_loss * REGULARIZATION_SCALE # TODO 有点问题，再思考下
 
-            next_embedd_hat = next_embedd_hat.view(-1, 20)
+            next_embedd_hat = next_embedd_hat.view(-1, EMBEDDING_SIZE)
             flatten_recon_vec_obs, flatten_recon_img_obs = self.decoder(next_embedd_hat)
             recon_vec_obs = flatten_recon_vec_obs.view(CHUNK_LENGTH - 1, self.batch_size, 10)
             recon_img_obs = flatten_recon_img_obs.view(CHUNK_LENGTH - 1, self.batch_size, 3, 64, 64)

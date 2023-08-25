@@ -248,12 +248,13 @@ class TactilePushBallConfig(Config):
         self.action_repeat = 2
 
         self.ensemble_size = 10
+        self.embedding_size = 20
         self.hidden_size = 400
 
         self.n_train_epochs = 100
         self.batch_size = 100
 
-        self.plan_horizon = 10
+        self.plan_horizon = 5
         self.optimisation_iters = 10
         self.n_candidates = 500
         self.top_candidates = 20

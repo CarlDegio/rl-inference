@@ -8,7 +8,7 @@ class Encoder(nn.Module):
     Encoder to embed image observation (3, 64, 64) to vector (10,)
     """
 
-    def __init__(self, device):
+    def __init__(self, device, embedding_size):
         super(Encoder, self).__init__()
         self.cv1 = nn.Conv2d(3, 16, kernel_size=4, stride=2)
         self.cv2 = nn.Conv2d(16, 32, kernel_size=4, stride=2)
@@ -18,7 +18,7 @@ class Encoder(nn.Module):
         self.fc2 = nn.Linear(128, 256)
         self.fc3 = nn.Linear(512, 256)
         self.fc4 = nn.Linear(256, 128)
-        self.fc5 = nn.Linear(128, 20)
+        self.fc5 = nn.Linear(128, embedding_size)
         self.to(device)
 
     def forward(self, vec, img):

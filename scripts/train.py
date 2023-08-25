@@ -44,19 +44,19 @@ def main(args):
 
     normalizer = None
     buffer = Buffer(state_size, action_size, args.ensemble_size, device=DEVICE)
-    encoder = Encoder(device=DEVICE)
-    decoder = Decoder(state_size, 20, device=DEVICE)
+    encoder = Encoder(device=DEVICE, embedding_size=config.embedding_size)
+    decoder = Decoder(state_size, config.embedding_size, device=DEVICE)
 
     ensemble = EnsembleModel(
-        (state_size + 10) + action_size,
-        state_size + 10,
+        (config.embedding_size) + action_size,
+        config.embedding_size,
         args.hidden_size,
         args.ensemble_size,
         normalizer,
         device=DEVICE,
     )
-    reward_model = RewardModel(state_size + 10, args.hidden_size, device=DEVICE)
-    critic_model = CriticModel(state_size, action_size, 20, args.hidden_size, device=DEVICE)
+    reward_model = RewardModel(config.embedding_size, args.hidden_size, device=DEVICE)
+    critic_model = CriticModel(state_size, action_size, config.embedding_size, args.hidden_size, device=DEVICE)
     trainer = Trainer(
         encoder,
         decoder,
