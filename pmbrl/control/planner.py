@@ -64,7 +64,8 @@ class Planner(nn.Module):
 
         vec_obs = torch.as_tensor(state['vec'], dtype=torch.float32).to(self.device).unsqueeze(0)
         img_obs = torch.as_tensor(np.transpose(state['img'], (2, 0, 1)), dtype=torch.float32).to(self.device).unsqueeze(0)
-        embedded_state = self.encoder(vec_obs, img_obs).squeeze()
+        embedded_dist = self.encoder(vec_obs, img_obs)
+        embedded_state=embedded_dist.sample().squeeze()
         embedded_state_error = embedded_state-self.predict_embedded_state
         print("embedded_loss: ", embedded_state_error)
         print("embedded_value:", embedded_state)

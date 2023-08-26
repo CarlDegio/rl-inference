@@ -105,7 +105,37 @@ class EnsembleModel(nn.Module):
         loss = (next_mu - next_embedded) ** 2 / next_var + 0.1 * torch.log(next_var)
         loss = loss.mean(-1).mean(-1).sum()
         next_mu = next_mu[inverse_index]
-        return loss, next_mu
+        next_var = next_var[inverse_index]
+        next_embedded=Normal(next_mu, torch.sqrt(next_var)).rsample()
+        return loss, next_embedded
+
+    def multi_step_loss(self, embedded, actions):
+        embedded_cut=embedded[:,:self.ensemble_size]
+        actions_cut=actions[:,:self.ensemble_size]
+        emebedded_predict_mu=torch.zeros(embedded.shape[0],embedded.shape[0],self.ensemble_size,embedded.shape[2]).to(self.device) # from to
+        emebedded_predict_var=torch.zeros(embedded.shape[0],embedded.shape[0],self.ensemble_size,embedded.shape[2]).to(self.device)
+        emebedded_predict=torch.zeros(embedded.shape[0],embedded.shape[0],self.ensemble_size,embedded.shape[2]).to(self.device)
+        for i in range(embedded.shape[0]):
+            emebedded_predict[i,i]=embedded_cut[i]
+        for i in range(embedded.shape[0]):
+            for j in range(i+1,embedded.shape[0]):
+                next_mu, next_var = self._propagate_network(emebedded_predict[i,j-1].unsqueeze(1), actions_cut[j-1].unsqueeze(1))
+                next_mu, next_var = next_mu.squeeze(),next_var.squeeze()
+                emebedded_predict_mu[i,j]=next_mu
+                emebedded_predict_var[i,j]=next_var
+                emebedded_predict[i,j]=Normal(next_mu, torch.sqrt(next_var)).rsample()
+
+        total_loss=0
+        for i in range(embedded.shape[0]-1):
+            loss=0
+            for j in range(i+1,embedded.shape[0]):
+                loss+=(emebedded_predict_mu[i,j]-embedded_cut[j])**2/emebedded_predict_var[i,j]+0.1*torch.log(emebedded_predict_var[i,j])
+            total_loss+=loss.mean(-1).sum()/(embedded.shape[0]-1-i)
+        total_loss/=embedded.shape[0]
+
+        next_mu, next_var = self._propagate_network(embedded, actions)
+        next_embedded = Normal(next_mu, torch.sqrt(next_var)).rsample()
+        return total_loss, next_embedded
 
     def sample(self, mean, var):
         return Normal(mean, torch.sqrt(var)).sample()

@@ -2,14 +2,17 @@
 # pylint: disable=no-member
 
 import torch
+from torch.distributions import Normal
+from torch.distributions.kl import kl_divergence
 
 CHUNK_LENGTH = 11
 ENC_DEC_TRAIN_EPOCH = 50
 VEC_RECON_SCALE = 1
 IMG_RECON_SCALE = 0.01
-REGULARIZATION_SCALE = 0.1
+REGULARIZATION_SCALE = 0.2
 REWARD_SCALE = 1
 EMBEDDING_SIZE = 20
+
 
 class Trainer(object):
     def __init__(
@@ -81,7 +84,10 @@ class Trainer(object):
             flatten_img_obs = img_obs.reshape(-1, 3, 64, 64)
 
             self.optim.zero_grad()
-            embedded_obs = self.encoder(flatten_vec_obs, flatten_img_obs)
+            embedding_distribution = self.encoder(flatten_vec_obs, flatten_img_obs)
+            standard_normal = Normal(torch.zeros_like(embedding_distribution.mean),
+                                     torch.ones_like(embedding_distribution.stddev))
+            embedded_obs = embedding_distribution.rsample()
             embedded_obs = embedded_obs.view(CHUNK_LENGTH, self.batch_size, EMBEDDING_SIZE)
             # critic_value = self.critic(vec_obs[:-1, :1].repeat(1, self.batch_size, 1),
             #                            actions[:-1, :1].repeat(1, self.batch_size, 1),
@@ -91,18 +97,22 @@ class Trainer(object):
             # critic_loss.backward(retain_graph=True)
             # self.critic_optim.zero_grad()
 
-            e_loss, next_embedd_hat = self.ensemble.loss(embedded_obs[:-1, ],
-                                                         actions[:-1, ],
-                                                         embedded_obs[1:, ])
+            # e_loss, next_embedd_hat = self.ensemble.loss(embedded_obs[:-1, ],
+            #                                              actions[:-1, ],
+            #                                              embedded_obs[1:, ])
+            e_loss, next_embedd_hat = self.ensemble.multi_step_loss(embedded_obs[:-1, ],actions[:-1, ])
+
             r_loss = self.reward_model.loss(embedded_obs[1:], rewards[:-1]) * REWARD_SCALE
 
             # regularization_loss = torch.dot(embedded_obs[:-1].reshape(10 * self.batch_size * 20),
             #                                 next_embedd_hat.reshape(10 * self.batch_size * 20)) / 10 \
             #                       / self.batch_size
-            regularization_loss = torch.nn.L1Loss(reduction='none')(embedded_obs[:-1], embedded_obs[1:]).mean(
-                [0, 1]).sum()
-            regularization_loss = torch.clamp(regularization_loss, max=1)
-            regularization_loss = -regularization_loss * REGULARIZATION_SCALE # TODO 有点问题，再思考下
+            # regularization_loss = torch.nn.L1Loss(reduction='none')(embedded_obs[:-1], embedded_obs[1:]).mean(
+            #     [0, 1]).sum()
+            # regularization_loss = torch.clamp(regularization_loss, max=1)
+            # regularization_loss = -regularization_loss * REGULARIZATION_SCALE # TODO 有点问题，再思考下
+            regularization_loss = kl_divergence(embedding_distribution, standard_normal). \
+                                      mean([0]).sum() * REGULARIZATION_SCALE
 
             next_embedd_hat = next_embedd_hat.view(-1, EMBEDDING_SIZE)
             flatten_recon_vec_obs, flatten_recon_img_obs = self.decoder(next_embedd_hat)
@@ -112,7 +122,7 @@ class Trainer(object):
                 mean([0, 1]).sum()
             img_loss = IMG_RECON_SCALE * torch.nn.functional.mse_loss(img_obs[1:], recon_img_obs, reduction='none'). \
                 mean([0, 1]).sum()
-            recon_loss = vec_loss + img_loss  # + regularization_loss
+            recon_loss = vec_loss + img_loss + regularization_loss
             loss = recon_loss + e_loss + r_loss
             loss.backward()
 
@@ -132,7 +142,6 @@ class Trainer(object):
             #     self.critic_params, self.grad_clip_norm, norm_type=2
             # )
             # self.critic_optim.step()
-
 
             e_losses[epoch - 1].append(e_loss.item())
             r_losses[epoch - 1].append(r_loss.item())

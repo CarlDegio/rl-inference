@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch.distributions import Normal
 
 
 class Encoder(nn.Module):
@@ -18,7 +19,7 @@ class Encoder(nn.Module):
         self.fc2 = nn.Linear(128, 256)
         self.fc3 = nn.Linear(512, 256)
         self.fc4 = nn.Linear(256, 128)
-        self.fc5 = nn.Linear(128, embedding_size)
+        self.fc5 = nn.Linear(128, 2*embedding_size)
         self.to(device)
 
     def forward(self, vec, img):
@@ -33,7 +34,9 @@ class Encoder(nn.Module):
         embedded_obs = F.relu(self.fc3(hidden))
         embedded_obs = F.relu(self.fc4(embedded_obs))
         embedded_obs = self.fc5(embedded_obs)
-        return embedded_obs
+        embedded_obs_mu, embedded_obs_std = embedded_obs.chunk(2, dim=1)
+        embedded_obs_std= F.softplus(embedded_obs_std) + 1e-5
+        return Normal(embedded_obs_mu, embedded_obs_std)
 
 
 class Decoder(nn.Module):
